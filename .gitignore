@@ -1,0 +1,12 @@
+echo "__pycache__/
+*.pyc
+*.blend1
+*.glb
+*.gltf
+*.DS_Store
+env/
+venv/
+.idea/
+.vscode/
+generated_scripts/" > .gitignore
+

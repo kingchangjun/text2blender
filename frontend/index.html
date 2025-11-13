@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Text to 3D Model</title>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/loaders/GLTFLoader.js"></script>
+  <style>
+    body { margin: 0; font-family: sans-serif; background: #111; color: #fff; }
+    #container { width: 100vw; height: 80vh; }
+    #inputArea { padding: 10px; text-align: center; }
+    input { width: 60%; padding: 10px; }
+    button { padding: 10px 20px; margin-left: 10px; }
+    #status { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div id="inputArea">
+    <input type="text" id="prompt" placeholder="Describe your 3D model...">
+    <button onclick="generateModel()">Generate</button>
+    <div id="status"></div>
+  </div>
+  <div id="container"></div>
+
+  <script>
+    let scene, camera, renderer, loader, model;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initScene();
+      animate();
+    });
+
+    function initScene() {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight * 0.8);
+      document.getElementById("container").appendChild(renderer.domElement);
+
+      const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+      scene.add(light);
+      camera.position.set(0, 1, 3);
+
+      loader = new THREE.GLTFLoader();
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (model) model.rotation.y += 0.01;
+      renderer.render(scene, camera);
+    }
+
+    async function generateModel() {
+      const prompt = document.getElementById("prompt").value;
+      if (!prompt) return alert("Please enter a description!");
+
+      document.getElementById("status").innerText = "Generating model... This may take 30~60 seconds.";
+      try {
+        const response = await fetch("/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt })
+        });
+        const data = await response.json();
+
+        if (data.output && loader) {
+          loadModel(data.output);
+          document.getElementById("status").innerText = "Model loaded!";
+        } else {
+          document.getElementById("status").innerText = "Error: " + (data.error || "Unknown");
+        }
+      } catch (e) {
+        document.getElementById("status").innerText = "Error: " + e.message;
+      }
+    }
+
+    function loadModel(path) {
+      if (!loader) {
+        console.error("GLTFLoader not initialized");
+        return;
+      }
+      if (model) scene.remove(model);
+      loader.load(path, (gltf) => {
+        model = gltf.scene;
+        scene.add(model);
+      }, undefined, (error) => {
+        console.error("Failed to load model:", error);
+        document.getElementById("status").innerText = "Failed to load model.";
+      });
+    }
+  </script>
+</body>
+</html>
+
