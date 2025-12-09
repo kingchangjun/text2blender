@@ -8,6 +8,8 @@ Backend_URL = ""
 Rackend_Undo_URL = ""
 Rackend_Redo_URL = ""
 
+
+
 st.info("생성된 이미지가 마음에 들지 않으시다면 질문을 더 자세히 해 주세요.")
 
 st.title("3D 모델 자동 생성")
@@ -31,7 +33,7 @@ with col2:
               help = "다음 이미지로 되돌립니다.")
 
 
-if st.botton("생성하기", use_contatiner_width = True):
+if st.button("생성하기", use_container_width = True):
     if prompt.strip() == "":
         st.error("질문을 입력해 주세요.")
     else:
