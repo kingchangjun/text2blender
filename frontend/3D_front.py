@@ -4,56 +4,84 @@ from io import BytesIO
 from PIL import Image
 import base64
 
-Backend_URL = ""
-Rackend_Undo_URL = ""
-Rackend_Redo_URL = ""
+#api 주소.
+BACKEND_GENTATE = ""
+BACKEND_ASK = ""
+BACKEND_HISTORY =""
+BACKEND_LOAD_IMAGE = "" 
+BACKEND_NEW_SESSION = ""
+
+#세션 확인
+if "current_session_id" not in st.session_state:
+    st.session_state.current_session_id = None
+
+if "current_image" not in st.session_state:
+    st.session_state.current_image = None
+
+if "current_script" not in st.session_state:
+    st.session_state.current_script = None
+
+if "llm_answer" not in st.session_state:
+    st.session_state.llm_answer = ""
+
+
+#사이드바 디자인
+if st.sidebar.button("새 이미지 만들기"):
+    res = requests.post(BACKEND_NEW_SESSION)
+    data = res.json()
+
+    st.session_state.current_session_id = data["session_id"]
+    st.session_state.current_image = data["image_base64"]
+    st.session_state.current_script = data["script"]
+    st.session_state.llm_answer = "새 세션을 시작했습니다."
+
+st.sidebar.title("3D 모델 생성")
+st.sidebar.collapsed = False
+
+# 프롬프트 입력, 이미지 생성.
+prompt = st.sidebar.text_area("만들 모델을 자세히 설명해 주세요.",height = 100)
+if st.sidebar.button("Create",type = "primary",width = "stretch"):
+    if not st.session_state.current_session_id:
+        st.warning("먼저 '새 이미지 만들기'를 클릭해서 새 세션을 시작하세요.")
+    else:
+        with st.spinner("이미지 생성 중입니다..."):
+            res = requests.post(BACKEND_ASK, json={
+                "session_id": st.session_state.current_session_id,
+                "prompt": prompt
+        })
+
+        data = res.json()
+
+        st.session_state.llm_answer = data.get("llm_answer", "")
+        st.session_state.current_image = data.get("image_base64", "")
+        st.session_state.current_script = data.get("script", "")
+
+st.sidebar.subheader("📜 히스토리")
+history = requests.get(BACKEND_HISTORY).json()
+
+for item in history:
+    if st.sidebar.button(f"{item['id']} - {item['prompt'][:20]}"):
+        img_res = requests.get(f"{BACKEND_LOAD_IMAGE}/{item['id']}")
+        img_data = img_res.json()
+
+        st.session_state.current_image = img_data["image_base64"]
+        st.session_state.current_script = img_data["script"]
+        st.session_state.llm_answer = img_data["llm_answer"]
+        st.session_state.current_session_id = img_data["session_id"]
+
+
+
+
+#메인 디자인
+st.title("3D 모델링 생성")
+
+if st.session_state.current_image:
+    img_bytes = base64.b64decode(st.session_state.current_image)
+    img = Image.open(BytesIO)
+    st.image(img, caption = "현재 렌더링 이미지", use_column_width = True)
+
+
 
 
 
 st.info("생성된 이미지가 마음에 들지 않으시다면 질문을 더 자세히 해 주세요.")
-
-st.title("3D 모델 자동 생성")
-#st.markdown('# 3D 모델 자동 생성','### 4inlab')
-
-
-
-
-# 프롬프트 입력.
-prompt = st.text_input("만들 모델을 자세히 설명해 주세요.")
-
-col, col_empty, col2 = st.columns([1,13,1])
-with col:
-    st.button("<-",
-              key="undo",
-              help="이전 이미지로 되돌립니다.")
-
-with col2:
-    st.button("->",
-              key = "redo",
-              help = "다음 이미지로 되돌립니다.")
-
-
-if st.button("생성하기", use_container_width = True):
-    if prompt.strip() == "":
-        st.error("질문을 입력해 주세요.")
-    else:
-        try:
-            with st.spinner("생성 중 입니다...."):
-
-                #백엔드 주소
-                response = requests.post(Backend_URL,json={"prompt":prompt})
-
-                if response.status_code != 200:
-                    st.error(str(response.status_code)+"Error")
-                else:
-                    result = response.json()
-
-                    if "image_base" in result:
-                        img_bytes = img_bytes = base64.b64decode(result["image_base64"])
-                        img = Image.open(BytesIO(img_bytes))
-                        st.image(img, use_column_width=True)
-                    else:
-                        st.warning("이미지 데이터를 불러 올 수 없습니다.")
-        except Exception as e:
-            st.error()
-

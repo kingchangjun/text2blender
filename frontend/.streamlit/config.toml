@@ -1,7 +1,8 @@
 [theme]
 base="light"
 
-backgroundColor="#1f2c5c"     
-secondaryBackgroundColor="#c3c3c3"   
-textColor="#ffffff"             
-primaryColor="#ffcc00"         
+backgroundColor="#FFFFFF"     
+secondaryBackgroundColor="#f0f0f0ff"   
+textColor="#000000"             
+primaryColor="#ff0000ff"         
+sidebar = {backgroundColor="#1f2c5c",secondaryBackgroundColor="#f0f0f0ff",textColor="#FFFFFF"}
